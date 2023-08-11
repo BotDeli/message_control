@@ -2,9 +2,10 @@ http-server:
   address: "localhost:8081"
   read-header-timeout: 4s
   idle-timeout: 1m
+  uuid: "6b5d18de-7671-4aaf-806d-2f50d7cc6ee9"
 postgres:
   user: "kare"
   password: ""
   host: "localhost"
-  dbname: "messages"
+  dbname: "message_control"
   sslmode: "disable"

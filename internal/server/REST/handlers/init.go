@@ -1,9 +1,11 @@
 package handlers
 
-import "github.com/labstack/echo/v4"
+import (
+	"github.com/labstack/echo/v4"
+	"message_control/internal/storage"
+)
 
-func InitHandlers(client *echo.Echo) {
-	client.GET("/", func(ctx echo.Context) error {
-		return ctx.String(200, "Hi")
-	})
+func InitHandlers(client *echo.Echo, storage storage.MessageControl) {
+	client.POST("/newMessage", handlerNewMessage(storage))
+	client.GET("/userList", handlerGetUserList(storage))
 }

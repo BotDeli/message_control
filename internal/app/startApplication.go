@@ -8,6 +8,8 @@ import (
 
 func StartApplication() {
 	cfg := config.MustReadConfig()
-	storage := postgres.MustNewStorage(cfg.Postgres)
-	REST.MustStartServer(cfg.HttpServer, storage)
+
+	controller := postgres.MustNewMessageControl(cfg.Postgres)
+
+	REST.MustStartServer(cfg.HttpServer, controller)
 }

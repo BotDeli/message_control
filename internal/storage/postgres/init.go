@@ -14,20 +14,22 @@ const (
 	path               = "message_control/internal/storage/postgres"
 )
 
-type DB interface {
-	Close() error
-}
-
 type Postgres struct {
 	Database DB
 }
 
-func MustNewStorage(cfg config.PostgresConfig) storage.Storage {
+type DB interface {
+	Close() error
+	Query(query string, args ...any) (*sql.Rows, error)
+	Exec(query string, args ...any) (sql.Result, error)
+}
+
+func MustNewMessageControl(cfg config.PostgresConfig) storage.MessageControl {
 	dataSourceName := cfg.GetDataSourceName()
 	database, err := sql.Open("postgres", dataSourceName)
 
 	if err != nil {
-		log.Fatal(errorHandle.ErrorFormatString(path, "init.go", "MustNewStorage", err))
+		errorHandle.Commit(path, "init.go", "MustNewStorage", err)
 	}
 
 	if err = database.Ping(); err != nil {
@@ -40,6 +42,6 @@ func MustNewStorage(cfg config.PostgresConfig) storage.Storage {
 
 func (pg Postgres) Disconnect() {
 	if err := pg.Database.Close(); err != nil {
-		log.Println(errorHandle.ErrorFormatString(path, "storage.go", "Disconnect", err))
+		errorHandle.Commit(path, "queriesMessageControl.go", "Disconnect", err)
 	}
 }

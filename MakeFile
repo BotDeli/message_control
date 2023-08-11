@@ -1,0 +1,7 @@
+.PHONY: run lint
+
+run:
+	go build -o app cmd/start/main.go ./app
+
+lint:
+	golangci-lint run

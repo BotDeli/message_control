@@ -4,8 +4,13 @@ import (
 	"message_control/internal/message"
 )
 
-type Storage interface {
+type MessageControl interface {
 	AddNewMessage(msg message.Message) bool
-	GetMessagesChat(user1, user2 string) []message.Message
-	GetUsersList(user string) []string
+	GetMessagesChat(username, buddy string) ([]message.Message, error)
+	GetUsersList(username string) ([]ChatUser, error)
+}
+
+type ChatUser struct {
+	Username string `json:"username"`
+	Read     bool   `json:"read"`
 }

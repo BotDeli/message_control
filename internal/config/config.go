@@ -16,6 +16,7 @@ type HTTPServerConfig struct {
 	Address           string        `yaml:"address" env-default:"localhost:8080"`
 	ReadHeaderTimeout time.Duration `yaml:"read-header-timeout" env-default:"10s"`
 	IdleTimeout       time.Duration `yaml:"idle-timeout" env-default:"1m"`
+	UUID              string        `yaml:"uuid" env-required:"true"`
 }
 
 const (
