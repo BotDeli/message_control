@@ -4,19 +4,16 @@ import (
 	"github.com/ilyakaznacheev/cleanenv"
 	"log"
 	"os"
-	"time"
 )
 
 type Config struct {
-	HttpServer HTTPServerConfig `yaml:"http-server" env-required:"true"`
+	GRPCServer GrpcServerConfig `yaml:"grpc-server" env-required:"true"`
 	Postgres   PostgresConfig   `yaml:"postgres" env-required:"true"`
 }
 
-type HTTPServerConfig struct {
-	Address           string        `yaml:"address" env-default:"localhost:8080"`
-	ReadHeaderTimeout time.Duration `yaml:"read-header-timeout" env-default:"10s"`
-	IdleTimeout       time.Duration `yaml:"idle-timeout" env-default:"1m"`
-	UUID              string        `yaml:"uuid" env-required:"true"`
+type GrpcServerConfig struct {
+	Port string `yaml:"port" env-default:":8080"`
+	UUID string `yaml:"uuid" env-required:"true"`
 }
 
 const (

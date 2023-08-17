@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+option go_package = ".";
+
+service MessageController {
+  rpc NewMessage(Message) returns(Response) {}
+  rpc ChatMessages(Users) returns(ChatUsers) {}
+  rpc FriendsList(User) returns(List) {}
+}
+
+message Message{
+  string from = 1;
+  string to = 2;
+  string text = 3;
+  string date = 4;
+  bool read = 5;
+}
+
+message Response{
+  bool success = 1;
+}
+
+message Users{
+  string username = 1;
+  string friend = 2;
+}
+
+message ChatUsers{
+  repeated Message messages = 1;
+}
+
+message User{
+  string username = 1;
+}
+
+message List{
+  repeated Friend friend = 1;
+}
+
+message Friend{
+  string username = 1;
+  bool read = 2;
+}

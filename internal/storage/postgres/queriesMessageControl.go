@@ -29,7 +29,11 @@ func (pg Postgres) AddNewMessage(msg message.Message) bool {
 	return err == nil
 }
 func (pg Postgres) GetMessagesChat(username, buddy string) ([]message.Message, error) {
-	query := `SELECT * FROM chat WHERE (from_user = $1 OR to_user = $1) AND (from_user = $2 OR to_user = $2)`
+	query := `
+	SELECT * 
+	FROM chat 
+	WHERE (from_user = $1 OR to_user = $1) AND (from_user = $2 OR to_user = $2) ORDER BY date
+			`
 
 	var (
 		rows *sql.Rows
@@ -64,19 +68,19 @@ func (pg Postgres) GetMessagesChat(username, buddy string) ([]message.Message, e
 	return messages, nil
 }
 
-func (pg Postgres) GetUsersList(username string) ([]storage.ChatUser, error) {
+func (pg Postgres) GetFriendsList(username string) ([]storage.ChatUser, error) {
 	var (
 		lastInputUsers, lastOutputUsers []storage.ChatUser
 		err                             error
 	)
 
 	if lastInputUsers, err = getUsersMessagesToMe(pg, username); err != nil {
-		errorHandle.Commit(path, "queriesMessageControl", "GetUsersList", err)
+		errorHandle.Commit(path, "queriesMessageControl", "GetFriendsList", err)
 		return nil, err
 	}
 
 	if lastOutputUsers, err = getUsersMessagesSendI(pg, username); err != nil {
-		errorHandle.Commit(path, "queriesMessageControl", "GetUsersList", err)
+		errorHandle.Commit(path, "queriesMessageControl", "GetFriendsList", err)
 		return nil, err
 	}
 	return append(lastInputUsers, lastOutputUsers...), nil

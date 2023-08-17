@@ -14,6 +14,8 @@ import (
 const (
 	testUser1 = "userT1"
 	testUser2 = "userT2"
+	SELECT    = `SELECT`
+	INSERT    = `INSERT INTO`
 )
 
 var (
@@ -35,10 +37,9 @@ func TestAddNewMessage(t *testing.T) {
 
 func testingAddNewMessage(t *testing.T, returnError error, expectedResponse bool) {
 	db, mock := newDBMock(t)
-	expectedQuery := `INSERT INTO`
 	result := getResult()
 
-	mock.ExpectExec(expectedQuery).WithArgs(testMsg.From, testMsg.To, testMsg.Text, testMsg.Date, testMsg.Read).WillReturnResult(result).WillReturnError(returnError)
+	mock.ExpectExec(INSERT).WithArgs(testMsg.From, testMsg.To, testMsg.Text, testMsg.Date, testMsg.Read).WillReturnResult(result).WillReturnError(returnError)
 
 	var controller storage.MessageControl = postgres.Postgres{Database: db}
 
@@ -190,18 +191,17 @@ var (
 
 func testingGetUsersList(t *testing.T, test testBodyGetUsers) {
 	db, mock := newDBMock(t)
-	expectedQuery := `SELECT`
 
 	// test getUsersMessagesToMe
 	rowsMock := createRows(toMeColumns, test.toMe.rows)
-	mock.ExpectQuery(expectedQuery).WithArgs(test.username).WillReturnRows(rowsMock).WillReturnError(test.toMe.returnedError)
+	mock.ExpectQuery(SELECT).WithArgs(test.username).WillReturnRows(rowsMock).WillReturnError(test.toMe.returnedError)
 
 	// test getUsersMessagesSendI
 	rowsMock = createRows(sendIColumns, test.sendI.rows)
-	mock.ExpectQuery(expectedQuery).WithArgs(test.username, test.username).WillReturnRows(rowsMock).WillReturnError(test.sendI.returnedError)
+	mock.ExpectQuery(SELECT).WithArgs(test.username, test.username).WillReturnRows(rowsMock).WillReturnError(test.sendI.returnedError)
 
 	var controller storage.MessageControl = postgres.Postgres{Database: db}
-	responseUsers, err := controller.GetUsersList(test.username)
+	responseUsers, err := controller.GetFriendsList(test.username)
 
 	checkError(t, test.expectedError, err)
 	if !test.expectedError {
@@ -294,7 +294,7 @@ func testingGetMessagesChat(t *testing.T, test testBodyGetMessagesChat) {
 	db, mock := newDBMock(t)
 
 	rowsMock := createRows(getMessagesColumns, test.table.rows)
-	mock.ExpectQuery("SELECT").WithArgs(test.username, test.buddy).WillReturnRows(rowsMock).WillReturnError(test.table.returnedError)
+	mock.ExpectQuery(SELECT).WithArgs(test.username, test.buddy).WillReturnRows(rowsMock).WillReturnError(test.table.returnedError)
 
 	var controller storage.MessageControl = postgres.Postgres{Database: db}
 
@@ -349,6 +349,36 @@ func TestErrorGetMessagesChat(t *testing.T) {
 		},
 		expected:      nil,
 		expectedError: true,
+	}
+	testingGetMessagesChat(t, test)
+}
+
+var (
+	testTime = time.Now()
+)
+
+func TestSuccessfulGetMessagesChat(t *testing.T) {
+	test := testBodyGetMessagesChat{
+		username: "testUser",
+		buddy:    "testBuddy",
+		table: testCase{
+			rows: [][]driver.Value{
+				{"testUser", "testBuddy", "", testTime, false},
+				{"testBuddy", "testUser", "HelloWorld", testTime, true},
+				{"testUser", "testBuddy", "HelloTest :3 .... \n OK! Process...\n NEW YEAR!!!", testTime, false},
+				{"testUser", "testBuddy", "No! No! No!", testTime, true},
+				{"testBuddy", "testUser", "ccc", testTime, true},
+			},
+			returnedError: nil,
+		},
+		expected: []message.Message{
+			{"testUser", "testBuddy", "", testTime, false},
+			{"testBuddy", "testUser", "HelloWorld", testTime, true},
+			{"testUser", "testBuddy", "HelloTest :3 .... \n OK! Process...\n NEW YEAR!!!", testTime, false},
+			{"testUser", "testBuddy", "No! No! No!", testTime, true},
+			{"testBuddy", "testUser", "ccc", testTime, true},
+		},
+		expectedError: false,
 	}
 	testingGetMessagesChat(t, test)
 }

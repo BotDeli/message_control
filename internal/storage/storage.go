@@ -7,7 +7,7 @@ import (
 type MessageControl interface {
 	AddNewMessage(msg message.Message) bool
 	GetMessagesChat(username, buddy string) ([]message.Message, error)
-	GetUsersList(username string) ([]ChatUser, error)
+	GetFriendsList(username string) ([]ChatUser, error)
 }
 
 type ChatUser struct {
