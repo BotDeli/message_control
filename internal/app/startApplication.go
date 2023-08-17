@@ -3,7 +3,7 @@ package app
 import (
 	"log"
 	"message_control/internal/config"
-	"message_control/internal/server/grpc"
+	"message_control/internal/server/serverGRPC"
 	"message_control/internal/storage/postgres"
 )
 
@@ -12,5 +12,5 @@ func StartApplication() {
 
 	controller := postgres.MustNewMessageControl(cfg.Postgres)
 
-	log.Fatal(grpc.StartServer(cfg.GRPCServer, controller))
+	log.Fatal(serverGRPC.StartServer(cfg.GRPCServer, controller))
 }

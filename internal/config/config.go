@@ -38,14 +38,16 @@ func checkPathIsSet(path string) {
 
 func checkFileExists(path string) {
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		log.Fatal(fileNotFound)
+		log.Println(fileNotFound)
+		log.Fatal(err)
 	}
 }
 
 func readConfig(path string) Config {
 	var cfg Config
 	if err := cleanenv.ReadConfig(path, &cfg); err != nil {
-		log.Fatal(errorReading)
+		log.Println(errorReading)
+		log.Fatal(err)
 	}
 	return cfg
 }

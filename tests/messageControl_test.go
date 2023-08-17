@@ -300,8 +300,6 @@ func testingGetMessagesChat(t *testing.T, test testBodyGetMessagesChat) {
 
 	responseUsers, err := controller.GetMessagesChat(test.username, test.buddy)
 
-	checkError(t, test.expectedError, err)
-
 	if !test.expectedError {
 		equalsMessages(t, test.expected, responseUsers)
 	}

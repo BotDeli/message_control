@@ -458,23 +458,23 @@ func file_proto_server_proto_rawDescGZIP() []byte {
 
 var file_proto_server_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
 var file_proto_server_proto_goTypes = []interface{}{
-	(*Message)(nil),   // 0: grpc.Message
-	(*Response)(nil),  // 1: grpc.Response
-	(*Users)(nil),     // 2: grpc.Users
-	(*ChatUsers)(nil), // 3: grpc.ChatUsers
-	(*User)(nil),      // 4: grpc.User
-	(*List)(nil),      // 5: grpc.List
-	(*Friend)(nil),    // 6: grpc.Friend
+	(*Message)(nil),   // 0: serverGRPC.Message
+	(*Response)(nil),  // 1: serverGRPC.Response
+	(*Users)(nil),     // 2: serverGRPC.Users
+	(*ChatUsers)(nil), // 3: serverGRPC.ChatUsers
+	(*User)(nil),      // 4: serverGRPC.User
+	(*List)(nil),      // 5: serverGRPC.List
+	(*Friend)(nil),    // 6: serverGRPC.Friend
 }
 var file_proto_server_proto_depIdxs = []int32{
-	0, // 0: grpc.ChatUsers.messages:type_name -> grpc.Message
-	6, // 1: grpc.List.friend:type_name -> grpc.Friend
-	0, // 2: grpc.MessageService.NewMessage:input_type -> grpc.Message
-	2, // 3: grpc.MessageService.ChatMessages:input_type -> grpc.Users
-	4, // 4: grpc.MessageService.FriendsList:input_type -> grpc.User
-	1, // 5: grpc.MessageService.NewMessage:output_type -> grpc.Response
-	3, // 6: grpc.MessageService.ChatMessages:output_type -> grpc.ChatUsers
-	5, // 7: grpc.MessageService.FriendsList:output_type -> grpc.List
+	0, // 0: serverGRPC.ChatUsers.messages:type_name -> serverGRPC.Message
+	6, // 1: serverGRPC.List.friend:type_name -> serverGRPC.Friend
+	0, // 2: serverGRPC.MessageService.NewMessage:input_type -> serverGRPC.Message
+	2, // 3: serverGRPC.MessageService.ChatMessages:input_type -> serverGRPC.Users
+	4, // 4: serverGRPC.MessageService.FriendsList:input_type -> serverGRPC.User
+	1, // 5: serverGRPC.MessageService.NewMessage:output_type -> serverGRPC.Response
+	3, // 6: serverGRPC.MessageService.ChatMessages:output_type -> serverGRPC.ChatUsers
+	5, // 7: serverGRPC.MessageService.FriendsList:output_type -> serverGRPC.List
 	5, // [5:8] is the sub-list for method output_type
 	2, // [2:5] is the sub-list for method input_type
 	2, // [2:2] is the sub-list for extension type_name

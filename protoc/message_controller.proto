@@ -3,17 +3,15 @@ syntax = "proto3";
 option go_package = ".";
 
 service MessageController {
-  rpc NewMessage(Message) returns(Response) {}
-  rpc ChatMessages(Users) returns(ChatUsers) {}
-  rpc FriendsList(User) returns(List) {}
+  rpc PostNewMessage(BodyMessage) returns(Response) {}
+  rpc GetChatMessages(Users) returns(ChatUsers) {}
+  rpc GetFriendsList(User) returns(FriendList) {}
 }
 
-message Message{
+message BodyMessage{
   string from = 1;
   string to = 2;
   string text = 3;
-  string date = 4;
-  bool read = 5;
 }
 
 message Response{
@@ -26,18 +24,23 @@ message Users{
 }
 
 message ChatUsers{
-  repeated Message messages = 1;
+  repeated ChatMessage messages = 1;
+}
+
+message ChatMessage{
+  BodyMessage msg = 1;
+  string date = 2;
 }
 
 message User{
   string username = 1;
 }
 
-message List{
-  repeated Friend friend = 1;
+message FriendList{
+  repeated Friend friends = 1;
 }
 
 message Friend{
   string username = 1;
-  bool read = 2;
+  string date = 2;
 }

@@ -9,7 +9,6 @@ type Message struct {
 	To   string    `json:"to"`
 	Text string    `json:"text"`
 	Date time.Time `json:"date"`
-	Read bool      `json:"read"`
 }
 
 func (m Message) getDateString() string {

@@ -2,15 +2,11 @@ package storage
 
 import (
 	"message_control/internal/message"
+	"message_control/internal/server/serverGRPC/pb"
 )
 
 type MessageControl interface {
-	AddNewMessage(msg message.Message) bool
-	GetMessagesChat(username, buddy string) ([]message.Message, error)
-	GetFriendsList(username string) ([]ChatUser, error)
-}
-
-type ChatUser struct {
-	Username string `json:"username"`
-	Read     bool   `json:"read"`
+	AddNewMessage(msg message.Message) (bool, error)
+	GetMessagesChat(username, friend string) ([]*pb.ChatMessage, error)
+	GetFriendsList(username string) ([]*pb.Friend, error)
 }
