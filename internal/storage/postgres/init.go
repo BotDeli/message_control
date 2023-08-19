@@ -4,9 +4,9 @@ import (
 	"database/sql"
 	_ "github.com/lib/pq"
 	"log"
-	"message_control/errorHandle"
 	"message_control/internal/config"
 	"message_control/internal/storage"
+	"message_control/pkg/errorHandle"
 )
 
 const (

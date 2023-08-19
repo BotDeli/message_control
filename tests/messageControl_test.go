@@ -5,11 +5,22 @@ import (
 	"errors"
 	"github.com/DATA-DOG/go-sqlmock"
 	"message_control/internal/message"
+	"message_control/internal/server/serverGRPC/pb"
 	"message_control/internal/storage"
 	"message_control/internal/storage/postgres"
+	"message_control/pkg/format"
 	"testing"
 	"time"
 )
+
+type testCase[T any] struct {
+	username      string
+	friend        string
+	returnedRows  [][]driver.Value
+	returnedError error
+	expected      []T
+	expectedError bool
+}
 
 const (
 	testUser1 = "userT1"
@@ -19,34 +30,51 @@ const (
 )
 
 var (
-	testMsg = message.Message{
-		From: testUser1,
-		To:   testUser2,
-		Text: "Hallo",
-		Date: time.Now(),
-		Read: true,
-	}
-
 	testError = errors.New("error")
 )
 
 func TestAddNewMessage(t *testing.T) {
-	testingAddNewMessage(t, nil, true)
-	testingAddNewMessage(t, testError, false)
+	testingAddNewMessage(t, nil, true, false)
+	testingAddNewMessage(t, testError, false, true)
 }
 
-func testingAddNewMessage(t *testing.T, returnError error, expectedResponse bool) {
+func testingAddNewMessage(t *testing.T, returnError error, expectedResponse, expectedError bool) {
 	db, mock := newDBMock(t)
 	result := getResult()
 
-	mock.ExpectExec(INSERT).WithArgs(testMsg.From, testMsg.To, testMsg.Text, testMsg.Date, testMsg.Read).WillReturnResult(result).WillReturnError(returnError)
+	testMsg := message.Message{
+		From: testUser1,
+		To:   testUser2,
+		Text: "Hallo",
+		Date: time.Now(),
+	}
+
+	mock.ExpectExec(INSERT).WithArgs(testMsg.From, testMsg.To, testMsg.Text, testMsg.Date).WillReturnResult(result).WillReturnError(returnError)
 
 	var controller storage.MessageControl = postgres.Postgres{Database: db}
 
-	response := controller.AddNewMessage(testMsg)
+	response, err := controller.AddNewMessage(testMsg)
+
+	checkError(t, expectedError, err)
 
 	if response != expectedResponse {
 		t.Errorf("expected: %v, got: %v, returned err: %v", expectedResponse, response, returnError)
+	}
+}
+
+func checkError(t *testing.T, expectedError bool, err error) {
+	if expectedError {
+
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+
+	} else {
+
+		if err != nil {
+			t.Fatal("expected nil, got ", err)
+		}
+
 	}
 }
 
@@ -64,149 +92,30 @@ func getResult() driver.Result {
 	return result
 }
 
-type testBodyGetUsers struct {
-	username      string
-	toMe          testCase
-	sendI         testCase
-	expected      []storage.ChatUser
-	expectedError bool
-}
-
-type testCase struct {
-	rows          [][]driver.Value
-	returnedError error
-}
-
 func TestEmptyTestGetUsersList(t *testing.T) {
-	test := testBodyGetUsers{
-		username: "testUser",
-		toMe: testCase{
-			rows:          nil,
-			returnedError: nil,
-		},
-		sendI: testCase{
-			rows:          nil,
-			returnedError: nil,
-		},
-		expected:      nil,
+	test := testCase[*pb.Friend]{
+		username:      "testUser",
+		returnedRows:  [][]driver.Value{},
+		returnedError: nil,
+		expected:      []*pb.Friend{},
 		expectedError: false,
 	}
 
-	testingGetUsersList(t, test)
+	testingGetFriendsList(t, test)
 }
 
-func TestSuccessfulGetUsersList(t *testing.T) {
-	test := testBodyGetUsers{
-		username: "testUser",
-		toMe: testCase{
-			rows: [][]driver.Value{
-				{"N1", 10},
-				{"N2", 0},
-				{"N3", 1},
-				{"N10", 0},
-			},
-			returnedError: nil,
-		},
-		sendI: testCase{
-			rows: [][]driver.Value{
-				{"N4"},
-				{"N5"},
-				{"N6"},
-			},
-			returnedError: nil,
-		},
-		expected: []storage.ChatUser{
-			{"N1", false},
-			{"N2", true},
-			{"N3", false},
-			{"N10", true},
-			{"N4", false},
-			{"N5", false},
-			{"N6", false},
-		},
-		expectedError: false,
-	}
-
-	testingGetUsersList(t, test)
-}
-
-func TestErrorsGetUsersList(t *testing.T) {
-	tests := []testBodyGetUsers{
-		{
-			username: "testUser",
-			toMe: testCase{
-				rows:          nil,
-				returnedError: testError,
-			},
-			sendI: testCase{
-				rows:          nil,
-				returnedError: testError,
-			},
-			expected:      nil,
-			expectedError: true,
-		},
-		{
-			username: "testUser",
-			toMe: testCase{
-				rows:          nil,
-				returnedError: nil,
-			},
-			sendI: testCase{
-				rows:          nil,
-				returnedError: testError,
-			},
-			expected:      nil,
-			expectedError: true,
-		},
-		{
-			username: "testUser",
-			toMe: testCase{
-				rows:          nil,
-				returnedError: testError,
-			},
-			sendI: testCase{
-				rows:          nil,
-				returnedError: nil,
-			},
-			expected:      nil,
-			expectedError: true,
-		},
-	}
-
-	for _, test := range tests {
-		testingGetUsersList(t, test)
-	}
-}
-
-var (
-	toMeColumns = []string{
-		"from_user",
-		"count_false",
-	}
-
-	sendIColumns = []string{
-		"to_user",
-	}
-)
-
-func testingGetUsersList(t *testing.T, test testBodyGetUsers) {
+func testingGetFriendsList(t *testing.T, test testCase[*pb.Friend]) {
 	db, mock := newDBMock(t)
 
-	// test getUsersMessagesToMe
-	rowsMock := createRows(toMeColumns, test.toMe.rows)
-	mock.ExpectQuery(SELECT).WithArgs(test.username).WillReturnRows(rowsMock).WillReturnError(test.toMe.returnedError)
-
-	// test getUsersMessagesSendI
-	rowsMock = createRows(sendIColumns, test.sendI.rows)
-	mock.ExpectQuery(SELECT).WithArgs(test.username, test.username).WillReturnRows(rowsMock).WillReturnError(test.sendI.returnedError)
+	rowsMock := createRows([]string{"username", "date"}, test.returnedRows)
+	mock.ExpectQuery(SELECT).WithArgs(test.username).WillReturnRows(rowsMock).WillReturnError(test.returnedError)
 
 	var controller storage.MessageControl = postgres.Postgres{Database: db}
 	responseUsers, err := controller.GetFriendsList(test.username)
 
 	checkError(t, test.expectedError, err)
-	if !test.expectedError {
-		equalsChatUser(t, test.expected, responseUsers)
-	}
+
+	equalFriends(t, test.expected, responseUsers)
 }
 
 func createRows(columns []string, rows [][]driver.Value) *sqlmock.Rows {
@@ -218,163 +127,197 @@ func createRows(columns []string, rows [][]driver.Value) *sqlmock.Rows {
 	return rowsMock
 }
 
-func checkError(t *testing.T, expectedError bool, err error) {
-	if expectedError {
-
-		if err == nil {
-			t.Fatal("expected error, got nil")
-		}
-
-	} else {
-
-		if err != nil {
-			t.Fatal("expected nil, got ", err)
-		}
-	}
-}
-
-func equalsChatUser(t *testing.T, expected, response []storage.ChatUser) {
+func equalFriends(t *testing.T, expected, response []*pb.Friend) {
 	checkLen(t, expected, response)
-
-	var (
-		e, r storage.ChatUser
-	)
-
 	for i := range expected {
-		e, r = expected[i], response[i]
 
-		if e.Username != r.Username {
-			t.Errorf("expected username %s, got %s", e.Username, r.Username)
+		if expected[i].Username != response[i].Username {
+			t.Errorf("expected username %s, got %s", expected[i].Username, response[i].Username)
 		}
 
-		if e.Read != r.Read {
-			t.Errorf("expected read %v, got %v", e.Read, r.Read)
+		if expected[i].Date != response[i].Date {
+			t.Errorf("expected date %s, got %s", expected[i].Date, response[i].Date)
 		}
+
 	}
 }
 
-func checkLen[k []storage.ChatUser | []message.Message](t *testing.T, expected, response k) {
-	lnExpected := len(expected)
-	lnResponse := len(response)
-
-	if lnExpected != lnResponse {
-		t.Error("Expected: ", expected)
-		t.Error("Response: ", response)
-		t.Fatalf("expected len: %d, got len: %d", lnExpected, lnResponse)
+func checkLen[T any](t *testing.T, expected, response []T) {
+	if len(expected) != len(response) {
+		t.Fatalf("expected length %d, response length %d", len(expected), len(response))
 	}
+}
+
+func TestSuccessfulGetUsersList(t *testing.T) {
+	testTime := time.Now()
+
+	test := testCase[*pb.Friend]{
+		username: "testUser",
+		returnedRows: [][]driver.Value{
+			{"user1", testTime},
+			{"user2", testTime},
+			{"user3", testTime},
+			{"user4", testTime},
+			{"user5", testTime},
+			{"user6", testTime},
+			{"user7", testTime},
+			{"user8", testTime},
+			{"user9", testTime},
+			{"user10", testTime},
+			{"u1", testTime},
+			{"u2", testTime},
+		},
+		returnedError: nil,
+		expected: []*pb.Friend{
+			{Username: "user1", Date: format.Date(testTime)},
+			{Username: "user2", Date: format.Date(testTime)},
+			{Username: "user3", Date: format.Date(testTime)},
+			{Username: "user4", Date: format.Date(testTime)},
+			{Username: "user5", Date: format.Date(testTime)},
+			{Username: "user6", Date: format.Date(testTime)},
+			{Username: "user7", Date: format.Date(testTime)},
+			{Username: "user8", Date: format.Date(testTime)},
+			{Username: "user9", Date: format.Date(testTime)},
+			{Username: "user10", Date: format.Date(testTime)},
+			{Username: "u1", Date: format.Date(testTime)},
+			{Username: "u2", Date: format.Date(testTime)},
+		},
+		expectedError: false,
+	}
+
+	testingGetFriendsList(t, test)
+}
+
+func TestErrorsGetUsersList(t *testing.T) {
+	test := testCase[*pb.Friend]{
+		username:      "testUser",
+		returnedRows:  nil,
+		returnedError: testError,
+		expected:      nil,
+		expectedError: true,
+	}
+
+	testingGetFriendsList(t, test)
 }
 
 func TestEmptyGetMessagesChat(t *testing.T) {
-	test := testBodyGetMessagesChat{
-		username: "testUser",
-		buddy:    "testBuddy",
-		table: testCase{
-			rows:          nil,
-			returnedError: nil,
-		},
-		expected:      nil,
+	test := testCase[*pb.ChatMessage]{
+		username:      "testUser",
+		friend:        "testFriend",
+		returnedRows:  [][]driver.Value{},
+		returnedError: nil,
+		expected:      []*pb.ChatMessage{},
 		expectedError: false,
 	}
 	testingGetMessagesChat(t, test)
 }
 
-var (
-	getMessagesColumns = []string{"from", "to", "text", "date", "read"}
-)
-
-type testBodyGetMessagesChat struct {
-	username      string
-	buddy         string
-	table         testCase
-	expected      []message.Message
-	expectedError bool
-}
-
-func testingGetMessagesChat(t *testing.T, test testBodyGetMessagesChat) {
+func testingGetMessagesChat(t *testing.T, test testCase[*pb.ChatMessage]) {
 	db, mock := newDBMock(t)
+	rowsMock := createRows([]string{"from", "to", "text", "date"}, test.returnedRows)
 
-	rowsMock := createRows(getMessagesColumns, test.table.rows)
-	mock.ExpectQuery(SELECT).WithArgs(test.username, test.buddy).WillReturnRows(rowsMock).WillReturnError(test.table.returnedError)
+	mock.ExpectQuery(SELECT).WithArgs(test.username, test.friend).WillReturnRows(rowsMock).WillReturnError(test.returnedError)
 
 	var controller storage.MessageControl = postgres.Postgres{Database: db}
 
-	responseUsers, err := controller.GetMessagesChat(test.username, test.buddy)
+	responseUsers, err := controller.GetMessagesChat(test.username, test.friend)
 
-	if !test.expectedError {
-		equalsMessages(t, test.expected, responseUsers)
-	}
+	checkError(t, test.expectedError, err)
+
+	equalChatMessage(t, test.expected, responseUsers)
 }
 
-func equalsMessages(t *testing.T, expected, response []message.Message) {
+func equalChatMessage(t *testing.T, expected, response []*pb.ChatMessage) {
 	checkLen(t, expected, response)
 
-	var (
-		e, r message.Message
-	)
-
 	for i := range expected {
-		e, r = expected[i], response[i]
 
-		if e.From != r.From {
-			t.Errorf("expected from %s, got %s", e.From, r.From)
+		if expected[i].Msg.To != response[i].Msg.To {
+			t.Errorf("expected msg.to %s, got %s", expected[i].Msg.To, response[i].Msg.To)
 		}
 
-		if e.To != r.To {
-			t.Errorf("expected to %s, got %s", e.To, r.To)
+		if expected[i].Msg.From != response[i].Msg.From {
+			t.Errorf("expected msg.from %s, got %s", expected[i].Msg.From, response[i].Msg.From)
 		}
 
-		if e.Text != r.Text {
-			t.Errorf("expected text %s, got %s", e.Text, r.Text)
+		if expected[i].Msg.Text != response[i].Msg.Text {
+			t.Errorf("expected msg.text %s, got %s", expected[i].Msg.Text, response[i].Msg.Text)
 		}
 
-		if e.Date != r.Date {
-			t.Errorf("expected date %s, got %s", e.Date, r.Date)
+		if expected[i].Date != response[i].Date {
+			t.Errorf("expected date %s, got %s", expected[i].Date, response[i].Date)
 		}
 
-		if e.Read != r.Read {
-			t.Errorf("expected read %v, got %v", e.Read, r.Read)
-		}
 	}
 }
 
 func TestErrorGetMessagesChat(t *testing.T) {
-	test := testBodyGetMessagesChat{
-		username: "testUser",
-		buddy:    "testBuddy",
-		table: testCase{
-			rows:          nil,
-			returnedError: testError,
-		},
+	test := testCase[*pb.ChatMessage]{
+		username:      "testUser",
+		friend:        "testBuddy",
+		returnedRows:  nil,
+		returnedError: testError,
 		expected:      nil,
 		expectedError: true,
 	}
 	testingGetMessagesChat(t, test)
 }
 
-var (
-	testTime = time.Now()
-)
-
 func TestSuccessfulGetMessagesChat(t *testing.T) {
-	test := testBodyGetMessagesChat{
+	testTime := time.Now()
+
+	test := testCase[*pb.ChatMessage]{
 		username: "testUser",
-		buddy:    "testBuddy",
-		table: testCase{
-			rows: [][]driver.Value{
-				{"testUser", "testBuddy", "", testTime, false},
-				{"testBuddy", "testUser", "HelloWorld", testTime, true},
-				{"testUser", "testBuddy", "HelloTest :3 .... \n OK! Process...\n NEW YEAR!!!", testTime, false},
-				{"testUser", "testBuddy", "No! No! No!", testTime, true},
-				{"testBuddy", "testUser", "ccc", testTime, true},
-			},
-			returnedError: nil,
+		friend:   "testBuddy",
+		returnedRows: [][]driver.Value{
+			{"testUser", "testBuddy", "", testTime},
+			{"testBuddy", "testUser", "HelloWorld", testTime},
+			{"testUser", "testBuddy", "HelloTest :3 .... \n OK! Process...\n NEW YEAR!!!", testTime},
+			{"testUser", "testBuddy", "No! No! No!", testTime},
+			{"testBuddy", "testUser", "ccc", testTime},
 		},
-		expected: []message.Message{
-			{"testUser", "testBuddy", "", testTime, false},
-			{"testBuddy", "testUser", "HelloWorld", testTime, true},
-			{"testUser", "testBuddy", "HelloTest :3 .... \n OK! Process...\n NEW YEAR!!!", testTime, false},
-			{"testUser", "testBuddy", "No! No! No!", testTime, true},
-			{"testBuddy", "testUser", "ccc", testTime, true},
+		returnedError: nil,
+		expected: []*pb.ChatMessage{
+			{
+				Msg: &pb.BodyMessage{
+					From: "testUser",
+					To:   "testBuddy",
+					Text: "",
+				},
+				Date: format.Date(testTime),
+			},
+			{
+				Msg: &pb.BodyMessage{
+					From: "testBuddy",
+					To:   "testUser",
+					Text: "HelloWorld",
+				},
+				Date: format.Date(testTime),
+			},
+			{
+				Msg: &pb.BodyMessage{
+					From: "testUser",
+					To:   "testBuddy",
+					Text: "HelloTest :3 .... \n OK! Process...\n NEW YEAR!!!",
+				},
+				Date: format.Date(testTime),
+			},
+			{
+				Msg: &pb.BodyMessage{
+					From: "testUser",
+					To:   "testBuddy",
+					Text: "No! No! No!",
+				},
+				Date: format.Date(testTime),
+			},
+			{
+				Msg: &pb.BodyMessage{
+					From: "testBuddy",
+					To:   "testUser",
+					Text: "ccc",
+				},
+				Date: format.Date(testTime),
+			},
 		},
 		expectedError: false,
 	}

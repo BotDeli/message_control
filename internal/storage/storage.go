@@ -7,6 +7,6 @@ import (
 
 type MessageControl interface {
 	AddNewMessage(msg message.Message) (bool, error)
-	GetMessagesChat(username, friend string) ([]*pb.ChatMessage, error)
 	GetFriendsList(username string) ([]*pb.Friend, error)
+	GetMessagesChat(username, friend string) ([]*pb.ChatMessage, error)
 }
